@@ -1,0 +1,92 @@
+// Pins
+int irPin = 2;          // IR obstacle sensor
+int opticalPin = 3;     // Optical break beam
+int clk = 4;            // Rotary encoder CLK
+int dt = 5;             // Rotary encoder DT
+int sw = 6;             // Encoder button
+int greenLED = 9;       // Green LED = all clear
+int redLED = 10;        // Red LED = IR obstacle detected
+int blueLED = 11;       // Blue LED = Optical beam blocked
+
+// Encoder variables
+int lastClk = HIGH;
+
+void setup() {
+  // Sensors
+  pinMode(irPin, INPUT);
+  pinMode(opticalPin, INPUT);
+
+  // Encoder
+  pinMode(clk, INPUT);
+  pinMode(dt, INPUT);
+  pinMode(sw, INPUT_PULLUP);
+
+  // LEDs
+  pinMode(greenLED, OUTPUT);
+  pinMode(redLED, OUTPUT);
+  pinMode(blueLED, OUTPUT);
+
+  // Serial monitor
+  Serial.begin(9600);
+}
+
+void loop() {
+  // --------------------------
+  // 1️⃣ Read sensors
+  int irState = digitalRead(irPin);         // 0 = obstacle, 1 = clear
+  int opticalState = digitalRead(opticalPin); // 0 = clear, 1 = beam blocked
+
+  // Invert optical to match logic
+  if (opticalState == 1) opticalState = 0;
+  else opticalState = 1;
+
+  // --------------------------
+  // 2️⃣ LED Logic
+  if (irState == 1 && opticalState == 1) {
+    // All clear → Green ON
+    digitalWrite(greenLED, HIGH);
+    digitalWrite(redLED, LOW);
+    digitalWrite(blueLED, LOW);
+  } 
+  else if (irState == 0) {
+    // IR obstacle → Red ON for 2 seconds
+    digitalWrite(redLED, HIGH);
+    digitalWrite(greenLED, LOW);
+    digitalWrite(blueLED, LOW);
+    Serial.println("IR Sensor: Obstacle Detected");
+    delay(2000); // 2 seconds alert
+  }
+  else if (opticalState == 0) {
+    // Optical beam blocked → Blue ON for 2 seconds
+    digitalWrite(blueLED, HIGH);
+    digitalWrite(greenLED, LOW);
+    digitalWrite(redLED, LOW);
+    Serial.println("Optical Sensor: Beam Blocked");
+    delay(2000); // 2 seconds alert
+  }
+
+  // --------------------------
+  // 3️⃣ Serial for clear state
+  if (irState == 1 && opticalState == 1) {
+    Serial.println("All Clear");
+  }
+
+  // --------------------------
+  // 4️⃣ Rotary encoder rotation
+  int currentClk = digitalRead(clk);
+  if (currentClk != lastClk) { 
+    if (digitalRead(dt) != currentClk) {
+      Serial.println("Rotary: Clockwise");
+    } else {
+      Serial.println("Rotary: Anti-clockwise");
+    }
+  }
+  lastClk = currentClk;
+
+  // --------------------------
+  // 5️⃣ Button press
+  if (digitalRead(sw) == LOW) {
+    Serial.println("Button pressed!");
+    delay(300); // debounce
+  }
+}
